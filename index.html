@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Book Library</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #2d2d2d;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tabs button {
+      padding: 10px 20px;
+      margin: 0 5px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #eee;
+      transition: background 0.3s;
+    }
+    .tabs button.active {
+      background-color: #333;
+      color: white;
+    }
+    .categories button {
+      margin-right: 10px;
+      margin-bottom: 10px;
+      padding: 7px 12px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4e9af1;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .categories button:hover {
+      background-color: #357ae8;
+    }
+    .book-list, .history-list {
+      display: grid;
+      gap: 15px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .card button {
+      margin-top: 10px;
+      background-color: #2d8fdd;
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .card button:hover {
+      background-color: #176fc1;
+    }
+    .add-book-form {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .add-book-form input, .add-book-form select {
+      margin-bottom: 10px;
+      padding: 10px;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .add-book-form button {
+      background-color: #28a745;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .add-book-form button:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <h1>📚 The Magic Pages</h1>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search by title or author...">
+  </div>
+
+  <div class="tabs">
+    <button id="libraryTab" class="active">Library</button>
+    <button id="historyTab">Borrow History</button>
+  </div>
+
+  <div class="categories" id="categories"></div>
+
+  <div id="librarySection" class="book-list"></div>
+  <div id="historySection" class="history-list" style="display:none;"></div>
+
+  <div class="add-book-form">
+    <h3>Add New Book</h3>
+    <input type="text" id="newTitle" placeholder="Book Title">
+    <input type="text" id="newAuthor" placeholder="Author">
+    <select id="newCategory">
+      <option value="Horror">Horror</option>
+      <option value="Science Fiction">Science Fiction</option>
+      <option value="Mystery">Mystery</option>
+      <option value="Romance">Romance</option>
+      <option value="Historical Fiction">Historical Fiction</option>
+    </select>
+    <button onclick="addNewBook()">Add Book</button>
+  </div>
+
+  <script>
+    const sampleBooks = [
+      { title: "The Shining", author: "Stephen King", category: "Horror" },
+      { title: "Frankenstein", author: "Mary Shelley", category: "Science Fiction" },
+      { title: "Gone Girl", author: "Gillian Flynn", category: "Mystery" },
+      { title: "Pride and Prejudice", author: "Jane Austen", category: "Romance" },
+      { title: "The Notebook", author: "Nicholas Sparks", category: "Romance" },
+      { title: "All the Light We Cannot See", author: "Anthony Doerr", category: "Historical Fiction" },
+      { title: "Dune", author: "Frank Herbert", category: "Science Fiction" },
+      { title: "Dracula", author: "Bram Stoker", category: "Horror" },
+    ];
+
+    let books = [...sampleBooks];
+    let history = [];
+    let selectedCategory = 'All';
+
+    const searchInput = document.getElementById('searchInput');
+    const librarySection = document.getElementById('librarySection');
+    const historySection = document.getElementById('historySection');
+    const libraryTab = document.getElementById('libraryTab');
+    const historyTab = document.getElementById('historyTab');
+    const categoriesDiv = document.getElementById('categories');
+
+    function renderCategories() {
+      const categories = ['All', ...new Set(books.map(book => book.category))];
+      categoriesDiv.innerHTML = '';
+      categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.textContent = category;
+        btn.onclick = () => {
+          selectedCategory = category;
+          renderBooks();
+        };
+        categoriesDiv.appendChild(btn);
+      });
+    }
+
+    function renderBooks() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const filteredBooks = books.filter(book => {
+        const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
+        const matchesSearch = book.title.toLowerCase().includes(searchTerm) ||
+                              book.author.toLowerCase().includes(searchTerm);
+        return matchesCategory && matchesSearch;
+      });
+
+      librarySection.innerHTML = '';
+      filteredBooks.forEach(book => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <strong>${book.title}</strong><br>
+          <em>by ${book.author}</em><br>
+          <small>Category: ${book.category}</small><br>
+        `;
+        const borrowBtn = document.createElement('button');
+        borrowBtn.textContent = 'Borrow';
+        borrowBtn.onclick = () => borrowBook(book);
+        card.appendChild(borrowBtn);
+        librarySection.appendChild(card);
+      });
+    }
+
+    function renderHistory() {
+      historySection.innerHTML = '';
+      if (history.length === 0) {
+        historySection.textContent = 'No books borrowed yet.';
+        return;
+      }
+      history.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <strong>${entry.title}</strong><br>
+          <em>by ${entry.author}</em><br>
+          <small>Borrowed on: ${entry.date}</small>
+        `;
+        historySection.appendChild(card);
+      });
+    }
+
+    function borrowBook(book) {
+      history.unshift({ ...book, date: new Date().toLocaleDateString() });
+      renderHistory();
+    }
+
+    function addNewBook() {
+      const title = document.getElementById('newTitle').value;
+      const author = document.getElementById('newAuthor').value;
+      const category = document.getElementById('newCategory').value;
+
+      if (!title || !author || !category) return alert('Please fill all fields');
+
+      books.push({ title, author, category });
+      document.getElementById('newTitle').value = '';
+      document.getElementById('newAuthor').value = '';
+      document.getElementById('newCategory').value = 'Horror';
+
+      renderCategories();
+      renderBooks();
+    }
+
+    searchInput.addEventListener('input', renderBooks);
+
+    libraryTab.onclick = () => {
+      libraryTab.classList.add('active');
+      historyTab.classList.remove('active');
+      librarySection.style.display = 'grid';
+      historySection.style.display = 'none';
+    };
+
+    historyTab.onclick = () => {
+      historyTab.classList.add('active');
+      libraryTab.classList.remove('active');
+      librarySection.style.display = 'none';
+      historySection.style.display = 'grid';
+    };
+
+    renderCategories();
+    renderBooks();
+    renderHistory();
+  </script>
+</body>
+</html>
